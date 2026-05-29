@@ -8,13 +8,13 @@
   "theme_color": "#4a90e2",
   "icons": [
     {
-      "src": "/uni-app/icon-192.png",
+      "src": "/uni-app/icon-192.png.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/uni-app/icon-512.png",
+      "src": "/uni-app/icon-512.png.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
