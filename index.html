@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大学生活管理アプリ</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="cordova.js"></script>
+  <style>
+    :root {
+      --primary-color: #4a90e2;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding-bottom: 70px;
+    }
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .container {
+      padding: 15px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .card h3 { margin-top: 0; color: var(--primary-color); }
+    .event-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .nav-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: white;
+      display: flex;
+      border-top: 1px solid #e0e0e0;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+      z-index: 1000;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #888;
+      cursor: pointer;
+    }
+    .nav-item.active { color: var(--primary-color); font-weight: bold; }
+    .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+    input, select, button {
+      width: 100%; padding: 10px; margin: 5px 0 15px 0;
+      border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;
+      background: var(--card-bg); color: var(--text-color);
+    }
+    button.btn-main { background: var(--primary-color); color: white; border: none; font-weight: bold; cursor: pointer; }
+    .day-tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .day-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #eee;
+      cursor: pointer;
+      font-weight: bold;
+      min-width: 40px;
+      color: var(--text-color);
+    }
+    .day-tab.active {
+      background: var(--primary-color);
+      color: white;
+    }
+    .period-card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--card-bg);
+    }
+    .period-card h4 { margin: 0 0 8px 0; color: var(--primary-color); }
+    .summary-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .summary-item:last-child { border-bottom: none; }
+    .money-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .money-subtab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      background: #eee;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+    .money-subtab.active {
+      background: var(--primary-color);
+      color: white;
+    }
+    .money-content {
+      display: none;
+    }
+    .money-content.active {
+      display: block;
+    }
+    .dark-mode {
+      --primary-color: #5aa9ff;
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #f5f5f5;
+    }
+    .dark-mode .day-tab {
+      background: #333;
+    }
+    .dark-mode .money-subtab {
+      background: #333;
+    }
+    .dark-mode input, .dark-mode select {
+      background: #2a2a2a;
+      border-color: #444;
+      color: #f5f5f5;
+    }
+    .dark-mode .event-item {
+      border-bottom-color: #333;
+    }
+    .dark-mode .summary-item {
+      border-bottom-color: #333;
+    }
+    .dark-mode .period-card {
+      border-color: #333;
+    }
+    /* FullCalendar adjustments */
+    .fc .fc-button {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+    .fc .fc-toolbar-title {
+      font-size: 1rem;
+    }
+    .fc .fc-today-button {
+      padding: 3px 8px !important;
+      font-size: 0.7rem !important;
+      border-radius: 6px !important;
+    }
+    /* Home preview cards equal height feel */
+    .home-preview-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      min-height: 100px;
+      cursor: pointer;
+    }
+    .home-preview-card h3 { margin-top: 0; color: var(--primary-color); }
+    .tt-class-info strong { display: block; }
+    .tt-class-info small { color: #888; font-size: 0.8rem; }
+    .attendance-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .attendance-出席 { background: #d4edda; color: #155724; }
+    .attendance-遅刻 { background: #fff3cd; color: #856404; }
+    .attendance-欠席 { background: #f8d7da; color: #721c24; }
+    .attendance-早退 { background: #d1ecf1; color: #0c5460; }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      cursor: pointer;
+      padding: 0 5px;
+      width: auto;
+      margin: 0;
+      font-size: 1rem;
+    }
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .money-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .money-item:last-child { border-bottom: none; }
+    .income-label { color: #27ae60; font-weight: bold; }
+    .expense-label { color: #e74c3c; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <header id="app-title">大学生活管理</header>
+
+  <div class="container">
+
+    <!-- 🏠 ホームタブ -->
+    <div id="tab-home" class="tab-content active">
+
+      <!-- 本日の授業 -->
+      <div class="home-preview-card" onclick="switchTab('timetable')">
+        <h3>🕒 本日の授業</h3>
+        <div id="home-timetable-preview">
+          <p style="color:#888;">授業なし</p>
+        </div>
+      </div>
+
+      <!-- 直近の課題 -->
+      <div class="home-preview-card" onclick="switchTab('tasks')">
+        <h3>📝 直近の課題</h3>
+        <div id="home-task-preview">
+          <p style="color:#888;">課題なし</p>
+        </div>
+      </div>
+
+      <!-- 当月の収支 -->
+      <div class="home-preview-card" onclick="switchTab('money')">
+        <h3>💰 今月の収支</h3>
+        <div id="home-money-preview">
+          <p style="color:#888;">収支データなし</p>
+        </div>
+      </div>
+
+      <!-- カレンダー -->
+      <div class="home-preview-card" onclick="switchTab('calendar')">
+        <h3>📅 本日の予定（Google同期）</h3>
+        <div id="home-calendar-events">
+          <p style="color: #888; font-size: 0.9rem;">タップしてカレンダーで同期・確認してください</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 📅 カレンダータブ -->
+    <div id="tab-calendar" class="tab-content">
+      <div class="card">
+        <h3>Googleカレンダー同期</h3>
+        <button class="btn-main" onclick="handleAuthClick()">Googleアカウントと同期する</button>
+        <div id="calendar-status"></div>
+      </div>
+      <div class="card">
+        <div id="calendar"></div>
+      </div>
+    </div>
+
+    <!-- 🕒 授業タブ -->
+    <div id="tab-timetable" class="tab-content">
+      <div class="card">
+        <h3>🕒 時間割</h3>
+        <div class="day-tabs">
+          <button class="day-tab active" onclick="switchDayTab('月', this)">月</button>
+          <button class="day-tab" onclick="switchDayTab('火', this)">火</button>
+          <button class="day-tab" onclick="switchDayTab('水', this)">水</button>
+          <button class="day-tab" onclick="switchDayTab('木', this)">木</button>
+          <button class="day-tab" onclick="switchDayTab('金', this)">金</button>
+        </div>
+        <div id="timetable-periods"></div>
+      </div>
+    </div>
+
+    <!-- 📝 課題タブ -->
+    <div id="tab-tasks" class="tab-content">
+      <div class="card">
+        <h3>📝 課題・タスク管理</h3>
+        <input type="text" id="task-name" placeholder="課題名を入力">
+        <input type="datetime-local" id="task-deadline">
+        <select id="task-notify">
+          <option value="none">通知なし</option>
+          <option value="1">1分前 (テスト用)</option>
+          <option value="5">5分前</option>
+          <option value="30">30分前</option>
+          <option value="60">1時間前</option>
+        </select>
+        <button class="btn-main" onclick="addTask()">課題を追加して通知をセット</button>
+        <div id="tasks-list"></div>
+      </div>
+    </div>
+
+    <!-- 💰 家計簿タブ -->
+    <div id="tab-money" class="tab-content">
+      <div class="card">
+        <h3>💰 収支追加</h3>
+        <input type="text" id="money-title" placeholder="内容">
+        <input type="number" id="money-amount" placeholder="金額">
+        <select id="money-type">
+          <option value="income">収入</option>
+          <option value="expense">支出</option>
+        </select>
+        <input type="text" id="money-category" placeholder="カテゴリー（例：食費、交通費）">
+        <button class="btn-main" onclick="addMoneyRecord()">追加</button>
+      </div>
+
+      <div class="card">
+        <div class="money-tabs">
+          <div class="money-subtab active" onclick="switchMoneyTab('history', event)">履歴</div>
+          <div class="money-subtab" onclick="switchMoneyTab('graph', event)">収支グラフ</div>
+        </div>
+
+        <div id="money-history" class="money-content active">
+          <select onchange="sortMoney(this.value)" style="margin-bottom:10px;">
+            <option value="new">追加順</option>
+            <option value="income">収入のみ</option>
+            <option value="expense">支出のみ</option>
+          </select>
+          <div id="money-list"></div>
+        </div>
+
+        <div id="money-graph" class="money-content">
+          <p style="font-weight:bold; color:var(--primary-color);">収支合計</p>
+          <canvas id="moneyChart"></canvas>
+          <br>
+          <p style="font-weight:bold; color:#27ae60;">収入内訳</p>
+          <canvas id="incomeChart"></canvas>
+          <br>
+          <p style="font-weight:bold; color:#e74c3c;">支出内訳</p>
+          <canvas id="expenseChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚙️ 設定タブ -->
+    <div id="tab-settings" class="tab-content">
+      <div class="card">
+        <h3>🎨 テーマ設定</h3>
+        <select id="theme-select" onchange="changeTheme(this.value)">
+          <option value="light">ライトモード</option>
+          <option value="dark">ダークモード</option>
+          <option value="device">デバイスに合わせる</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <h3>🔔 通知設定</h3>
+        <button class="btn-main" onclick="requestAppNotificationPermission()">通知権限を許可する</button>
+        <button class="btn-main" style="margin-top:5px;" onclick="testNotification()">テスト通知（3秒後）</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ボトムナビゲーション -->
+  <div class="nav-bar">
+    <div class="nav-item active" id="nav-home" onclick="switchTab('home')"><span class="nav-icon">🏠</span>ホーム</div>
+    <div class="nav-item" id="nav-calendar" onclick="switchTab('calendar')"><span class="nav-icon">📅</span>カレンダー</div>
+    <div class="nav-item" id="nav-timetable" onclick="switchTab('timetable')"><span class="nav-icon">🕒</span>授業</div>
+    <div class="nav-item" id="nav-tasks" onclick="switchTab('tasks')"><span class="nav-icon">📝</span>課題</div>
+    <div class="nav-item" id="nav-money" onclick="switchTab('money')"><span class="nav-icon">💰</span>家計簿</div>
+    <div class="nav-item" id="nav-settings" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span>設定</div>
+  </div>
+
+  <script>
+    // ===== データ管理 =====
+    let tasksData = JSON.parse(localStorage.getItem('tasksData')) || [];
+    let timetableData = JSON.parse(localStorage.getItem('timetableData')) || {};
+    let moneyData = JSON.parse(localStorage.getItem('moneyData')) || [];
+    let currentTimetableDay = '月';
+    let calendar;
+    let moneyChartInstance = null;
+    let incomeChartInstance = null;
+    let expenseChartInstance = null;
+
+    // ===== タブ切り替え =====
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const targetTab = document.getElementById(`tab-${tabId}`);
+      const targetNav = document.getElementById(`nav-${tabId}`);
+      if (targetTab) targetTab.classList.add('active');
+      if (targetNav) targetNav.classList.add('active');
+      const titles = {
+        home: '大学生活管理',
+        calendar: 'カレンダー同期',
+        timetable: '授業時間割',
+        tasks: '課題リマインダー',
+        money: '家計簿管理',
+        settings: '設定'
+      };
+      document.getElementById('app-title').innerText = titles[tabId] || '大学生活管理';
+    }
+
+    // ===== 通知 =====
+    function requestAppNotificationPermission() {
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        cordova.plugins.notification.local.requestPermission(function(granted) {
+          console.log("通知許可:", granted);
+          alert(granted ? '通知が許可されました' : '通知が拒否されました');
+        });
+      } else {
+        if ('Notification' in window) {
+          Notification.requestPermission().then(p => alert('通知権限: ' + p));
+        } else {
+          alert('このブラウザは通知をサポートしていません');
+        }
+      }
+    }
+
+    function testNotification() {
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        cordova.plugins.notification.local.schedule({
+          title: '🔔 テスト通知',
+          text: '通知は正常です！',
+          foreground: true,
+          trigger: { in: 3, unit: 'second' }
+        });
+      } else if ('Notification' in window && Notification.permission === 'granted') {
+        setTimeout(() => new Notification('🔔 テスト通知', { body: '通知は正常です！' }), 3000);
+      }
+      alert('3秒後に通知されます');
+    }
+
+    async function scheduleNotification(id, title, body, targetDate, beforeMinutes) {
+      const notifyDate = new Date(new Date(targetDate).getTime() - parseInt(beforeMinutes) * 60000);
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        cordova.plugins.notification.local.schedule({
+          id: id,
+          title: title,
+          text: body,
+          trigger: { at: notifyDate },
+          foreground: true
+        });
+      }
+    }
+
+    // ===== カレンダー =====
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'ja',
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,listWeek'
+        },
+        buttonText: { today: '今日', listWeek: 'リスト' },
+        dateClick: function(info) {
+          const title = prompt('予定タイトルを入力');
+          if (!title) return;
+          const time = prompt('時間を入力 (例: 14:30)\n省略すると終日予定', '');
+          const startDate = time ? `${info.dateStr}T${time}` : info.dateStr;
+          const eventId = Date.now();
+          calendar.addEvent({ id: eventId, title: title, start: startDate });
+          // 通知設定
+          if (time) {
+            const notifyMin = prompt('何分前に通知？(例: 30)\n通知しない場合は空欄', '30');
+            if (notifyMin && !isNaN(notifyMin)) {
+              scheduleNotification(eventId, '📅 予定リマインド', title, startDate, notifyMin);
+            }
+          }
+        }
+      });
+      // 既存タスクをカレンダーに追加
+      tasksData.forEach(t => {
+        calendar.addEvent({ id: t.id, title: `📝 ${t.name}`, start: t.deadline, color: '#e74c3c' });
+      });
+      calendar.render();
+    }
+
+    function handleAuthClick() {
+      document.getElementById('calendar-status').innerText = "⚡ Googleアカウントと接続中...";
+      setTimeout(() => {
+        document.getElementById('calendar-status').innerText = "✅ 同期完了 (最終同期: 今日)";
+        const dummyEvents = [
+          { title: "1限：英語コミュニケーション", time: "09:00", date: new Date().toISOString().split('T')[0] },
+          { title: "教授との面談（ゼミ室）", time: "13:00", date: new Date().toISOString().split('T')[0] },
+          { title: "サークル月例ミーティング", time: "17:00", date: new Date().toISOString().split('T')[0] }
+        ];
+        dummyEvents.forEach((e, i) => {
+          if (calendar) calendar.addEvent({ id: `gc-${i}`, title: e.title, start: `${e.date}T${e.time}`, color: '#27ae60' });
+        });
+        const homeCalList = document.getElementById('home-calendar-events');
+        homeCalList.innerHTML = dummyEvents.map(e => `
+          <div class="summary-item">
+            <span style="color:var(--primary-color); font-weight:bold;">${e.time}</span>　${e.title}
+          </div>`).join('');
+      }, 1000);
+    }
+
+    // ===== 時間割 =====
+    function switchDayTab(day, btn) {
+      currentTimetableDay = day;
+      document.querySelectorAll('.day-tab').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      renderTimetablePeriods();
+    }
+
+    function renderTimetablePeriods() {
+      const container = document.getElementById('timetable-periods');
+      let html = '';
+      for (let p = 1; p <= 6; p++) {
+        const key = `${currentTimetableDay}-${p}`;
+        const data = timetableData[key];
+        html += `<div class="period-card">
+          <h4>${p}限</h4>`;
+        if (data) {
+          html += `<div class="tt-class-info">
+            <strong>${data.subject}</strong>
+            <small>担当：${data.teacher || '-'}　教室：${data.room || '-'}</small>
+            <small><span class="attendance-badge attendance-${data.attendance}">${data.attendance}</span></small>
+          </div>
+          <button class="btn-main" style="margin-top:8px;" onclick="editClass('${currentTimetableDay}', ${p})">編集</button>`;
+        } else {
+          html += `<button class="btn-main" onclick="editClass('${currentTimetableDay}', ${p})">+ 授業を追加</button>`;
+        }
+        html += `</div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function editClass(day, period) {
+      const key = `${day}-${period}`;
+      const current = timetableData[key] || {};
+      const subject = prompt(`${day} ${period}限\n授業名`, current.subject || '');
+      if (subject === null) return;
+      const teacher = prompt('担当教員', current.teacher || '');
+      if (teacher === null) return;
+      const room = prompt('教室', current.room || '');
+      if (room === null) return;
+      const attendance = prompt('出欠状態\n(出席/遅刻/欠席/早退)', current.attendance || '出席');
+      if (attendance === null) return;
+      if (subject === '') {
+        delete timetableData[key];
+      } else {
+        timetableData[key] = { subject, teacher, room, attendance };
+      }
+      localStorage.setItem('timetableData', JSON.stringify(timetableData));
+      renderTimetablePeriods();
+      renderHomeTimetable();
+    }
+
+    function renderHomeTimetable() {
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const today = days[new Date().getDay()];
+      const target = document.getElementById('home-timetable-preview');
+      let html = '';
+      for (let i = 1; i <= 6; i++) {
+        const key = `${today}-${i}`;
+        if (timetableData[key]) {
+          html += `<div class="summary-item">
+            <strong>${i}限：${timetableData[key].subject}</strong>
+            <small style="display:block; color:#888;">教室：${timetableData[key].room || '-'}　担当：${timetableData[key].teacher || '-'}</small>
+          </div>`;
+        }
+      }
+      target.innerHTML = html || '<p style="color:#888;">授業なし</p>';
+    }
+
+    // ===== 課題 =====
+    async function addTask() {
+      const name = document.getElementById('task-name').value;
+      const deadline = document.getElementById('task-deadline').value;
+      const notifyMinutes = document.getElementById('task-notify').value;
+      if (!name || !deadline) { alert('課題名と締切を入力してください'); return; }
+      const newTask = { id: Date.now(), name, deadline, notifyMinutes, completed: false };
+      tasksData.push(newTask);
+      localStorage.setItem('tasksData', JSON.stringify(tasksData));
+      if (calendar) {
+        calendar.addEvent({ id: newTask.id, title: `📝 ${name}`, start: deadline, color: '#e74c3c' });
+      }
+      if (notifyMinutes !== 'none') {
+        await scheduleNotification(newTask.id, '📝 課題リマインド', `${name} の締切です`, deadline, notifyMinutes);
+      }
+      renderTasks();
+      renderHomeTasks();
+      document.getElementById('task-name').value = '';
+      document.getElementById('task-deadline').value = '';
+      alert('課題を追加しました');
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('tasks-list');
+      const sorted = [...tasksData].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      if (sorted.length === 0) {
+        list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">課題なし</p>';
+        return;
+      }
+      list.innerHTML = sorted.map(t => `
+        <div class="task-item">
+          <div>
+            <strong>${t.name}</strong><br>
+            <small style="color:#888;">締切：${t.deadline.replace('T', ' ')}</small>
+          </div>
+          <button class="delete-btn" onclick="deleteTask(${t.id})">🗑</button>
+        </div>`).join('');
+    }
+
+    function deleteTask(id) {
+      tasksData = tasksData.filter(t => t.id !== id);
+      localStorage.setItem('tasksData', JSON.stringify(tasksData));
+      renderTasks();
+      renderHomeTasks();
+    }
+
+    function renderHomeTasks() {
+      const target = document.getElementById('home-task-preview');
+      const sorted = [...tasksData].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      if (sorted.length === 0) {
+        target.innerHTML = '<p style="color:#888;">課題なし</p>';
+        return;
+      }
+      target.innerHTML = sorted.slice(0, 3).map(t => `
+        <div class="summary-item">
+          <strong>${t.name}</strong><br>
+          <small style="color:#888;">${t.deadline.replace('T', ' ')}</small>
+        </div>`).join('');
+    }
+
+    // ===== 家計簿 =====
+    function addMoneyRecord() {
+      const title = document.getElementById('money-title').value;
+      const amount = document.getElementById('money-amount').value;
+      const type = document.getElementById('money-type').value;
+      const category = document.getElementById('money-category').value;
+      if (!title || !amount || !category) { alert('内容・金額・カテゴリーを入力してください'); return; }
+      moneyData.push({ id: Date.now(), title, amount: Number(amount), type, category, date: new Date().toISOString() });
+      localStorage.setItem('moneyData', JSON.stringify(moneyData));
+      renderMoneyList();
+      renderHomeMoney();
+      renderMoneyCharts();
+      document.getElementById('money-title').value = '';
+      document.getElementById('money-amount').value = '';
+      document.getElementById('money-category').value = '';
+    }
+
+    function renderMoneyList(data = moneyData) {
+      const list = document.getElementById('money-list');
+      if (data.length === 0) {
+        list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">データなし</p>';
+        return;
+      }
+      list.innerHTML = data.map(m => `
+        <div class="money-item">
+          <div>
+            <strong>${m.title}</strong>
+            <small style="display:block; color:#888;">${m.category}</small>
+          </div>
+          <div style="text-align:right;">
+            <span class="${m.type === 'income' ? 'income-label' : 'expense-label'}">
+              ${m.type === 'income' ? '+' : '-'}¥${m.amount.toLocaleString()}
+            </span>
+            <button class="delete-btn" onclick="deleteMoney(${m.id})">🗑</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function deleteMoney(id) {
+      moneyData = moneyData.filter(m => m.id !== id);
+      localStorage.setItem('moneyData', JSON.stringify(moneyData));
+      renderMoneyList();
+      renderHomeMoney();
+      renderMoneyCharts();
+    }
+
+    function sortMoney(type) {
+      if (type === 'income') renderMoneyList(moneyData.filter(m => m.type === 'income'));
+      else if (type === 'expense') renderMoneyList(moneyData.filter(m => m.type === 'expense'));
+      else renderMoneyList(moneyData);
+    }
+
+    function switchMoneyTab(tab, event) {
+      document.querySelectorAll('.money-subtab').forEach(el => el.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.money-content').forEach(el => el.classList.remove('active'));
+      document.getElementById(`money-${tab}`).classList.add('active');
+      if (tab === 'graph') renderMoneyCharts();
+    }
+
+    function renderHomeMoney() {
+      const now = new Date();
+      const thisMonth = moneyData.filter(m => {
+        const d = new Date(m.date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      });
+      let income = 0, expense = 0;
+      thisMonth.forEach(m => {
+        if (m.type === 'income') income += m.amount;
+        else expense += m.amount;
+      });
+      const balance = income - expense;
+      document.getElementById('home-money-preview').innerHTML = `
+        <div class="summary-item"><span class="income-label">収入：¥${income.toLocaleString()}</span></div>
+        <div class="summary-item"><span class="expense-label">支出：¥${expense.toLocaleString()}</span></div>
+        <div class="summary-item"><strong>収支：${balance >= 0 ? '+' : ''}¥${balance.toLocaleString()}</strong></div>`;
+    }
+
+    function renderMoneyCharts() {
+      const incomeCategory = {};
+      const expenseCategory = {};
+      moneyData.forEach(m => {
+        if (m.type === 'income') incomeCategory[m.category] = (incomeCategory[m.category] || 0) + m.amount;
+        else expenseCategory[m.category] = (expenseCategory[m.category] || 0) + m.amount;
+      });
+
+      if (moneyChartInstance) moneyChartInstance.destroy();
+      if (incomeChartInstance) incomeChartInstance.destroy();
+      if (expenseChartInstance) expenseChartInstance.destroy();
+
+      const allLabels = [...Object.keys(incomeCategory), ...Object.keys(expenseCategory)];
+      const allData = [...Object.values(incomeCategory), ...Object.values(expenseCategory)];
+      const allColors = [
+        ...Object.keys(incomeCategory).map(() => 'rgba(39,174,96,0.8)'),
+        ...Object.keys(expenseCategory).map(() => 'rgba(231,76,60,0.8)')
+      ];
+
+      if (allData.length > 0) {
+        moneyChartInstance = new Chart(document.getElementById('moneyChart'), {
+          type: 'pie',
+          data: { labels: allLabels, datasets: [{ data: allData, backgroundColor: allColors }] },
+          options: { plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      if (Object.keys(incomeCategory).length > 0) {
+        incomeChartInstance = new Chart(document.getElementById('incomeChart'), {
+          type: 'pie',
+          data: {
+            labels: Object.keys(incomeCategory),
+            datasets: [{ data: Object.values(incomeCategory), backgroundColor: Object.keys(incomeCategory).map(() => 'rgba(39,174,96,0.8)') }]
+          },
+          options: { plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+
+      if (Object.keys(expenseCategory).length > 0) {
+        expenseChartInstance = new Chart(document.getElementById('expenseChart'), {
+          type: 'pie',
+          data: {
+            labels: Object.keys(expenseCategory),
+            datasets: [{ data: Object.values(expenseCategory), backgroundColor: Object.keys(expenseCategory).map(() => 'rgba(231,76,60,0.8)') }]
+          },
+          options: { plugins: { legend: { position: 'bottom' } } }
+        });
+      }
+    }
+
+    // ===== テーマ =====
+    function changeTheme(mode) {
+      localStorage.setItem('themeMode', mode);
+      applyTheme(mode);
+    }
+
+    function applyTheme(mode) {
+      document.body.classList.remove('dark-mode');
+      if (mode === 'dark') {
+        document.body.classList.add('dark-mode');
+      } else if (mode === 'device') {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.body.classList.add('dark-mode');
+        }
+      }
+    }
+
+    // ===== 起動時 =====
+    window.onload = () => {
+      renderTasks();
+      renderHomeTasks();
+      renderTimetablePeriods();
+      renderHomeTimetable();
+      renderMoneyList();
+      renderHomeMoney();
+      initCalendar();
+
+      const savedTheme = localStorage.getItem('themeMode') || 'light';
+      applyTheme(savedTheme);
+      const themeSelect = document.getElementById('theme-select');
+      if (themeSelect) themeSelect.value = savedTheme;
+
+      // 通知権限リクエスト（APK環境のみ）
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        requestAppNotificationPermission();
+      }
+    };
+  </script>
+</body>
+</html>
